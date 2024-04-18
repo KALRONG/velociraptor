@@ -104,7 +104,7 @@ sources:
                  WHERE Flow.artifacts_with_results =~ ArtifactNameRegex
                      AND log(message=Flow.artifacts_with_results)
 
-        LET organization = org().name
+        LET organization <= org().name
 
         LET documents = SELECT * FROM foreach(row=completions,
                   query={

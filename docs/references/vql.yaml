@@ -576,6 +576,9 @@
     Client metadata is a set of free form key/value data (see
     client_metadata() function).
 
+    For existing keys, the value is overwritten. Setting a metadata
+    key with a `NULL` value deletes that entry.
+
     ### Example
 
     ```vql
@@ -1382,6 +1385,10 @@
   - name: action
     type: string
     description: Either index or create. For data streams this must be create.
+  - name: secret
+    type: string
+    description: Alternatively use a secret from the secrets service. Secret must
+      be of type 'AWS S3 Creds'
   category: server
   metadata:
     permissions: COLLECT_SERVER
@@ -1418,7 +1425,7 @@
   args:
   - name: items
     type: Any
-    description: Not used anymore
+    description: The items to enumerate
   category: basic
 - name: enumerate_flow
   description: |
@@ -1473,6 +1480,33 @@
     description: 'The count of sessions to retrieve (default 64) '
   metadata:
     permissions: MACHINE_STATE
+- name: eval
+  description: |
+    Evaluate a vql lambda function on the current scope.
+
+    This allows you to use a string as a VQL function - the string
+    will be parsed at runtime as a VQL expression and then evaluated.
+
+    You can access previously defined variables or functions within
+    the scope.
+
+    Note that when eval calls the function, the current scope will be
+    passed as the first parameter to the lambda.
+
+    Example:
+
+    ```vql
+    LET AddTwo(x) = x + 2
+
+    SELECT eval(func="x=>AddTwo(x=1)") AS Three FROM scope()
+    ```
+  type: Function
+  args:
+  - name: func
+    type: vfilter.Lambda
+    description: Lambda function to evaluate e.g. x=>1+1 where x will be the current
+      scope.
+    required: true
 - name: execve
   description: |
     This plugin launches an external command and captures its STDERR,
@@ -2797,6 +2831,14 @@
   - name: else
     type: StoredQuery
   category: plugin
+- name: import
+  description: Imports an artifact into the current scope. This only works in notebooks!
+  type: Function
+  args:
+  - name: artifact
+    type: string
+    description: The Artifact to import
+    required: true
 - name: import_collection
   description: |
     Imports an offline collection zip file (experimental).
@@ -3557,6 +3599,9 @@
   - name: period
     type: int64
     description: The latest age of the cache.
+  - name: name
+    type: string
+    description: The name of this cache.
   category: basic
 - name: min
   description: |
@@ -5081,7 +5126,12 @@
     required: true
   category: basic
 - name: query
-  description: Evaluate a VQL query.
+  description: |
+    Evaluate a VQL query.
+
+    This plugin is useful for evaluating a query in a different
+    environment or context, or turning a string into a query.
+
   type: Plugin
   args:
   - name: query
@@ -5111,6 +5161,9 @@
   - name: runas
     type: string
     description: If specified, the query will run as the specified user
+  - name: inherit
+    type: bool
+    description: If specified we inherit the scope instead of building a new one.
   metadata:
     permissions: IMPERSONATION
 - name: rand
@@ -5575,6 +5628,9 @@
     Sets server metadata. Server metadata is a set of free form
     key/value data, usually used for configuration of artifacts.
 
+    For existing keys, the value is overwritten. Setting a metadata
+    key with a `NULL` value deletes that entry.
+
     ### Example
 
     ```vql
@@ -5812,6 +5868,7 @@
   - name: url
     type: string
     description: The Splunk Event Collector URL.
+    required: true
   - name: token
     type: string
     description: Splunk HEC Token.
@@ -5847,6 +5904,10 @@
   - name: hostname_field
     type: string
     description: Field to use as event hostname. Overrides hostname parameter.
+  - name: secret
+    type: string
+    description: Alternatively use a secret from the secrets service. Secret must
+      be of type 'AWS S3 Creds'
   category: server
   metadata:
     permissions: COLLECT_SERVER
@@ -5945,6 +6006,19 @@
     type: Any
     description: Dictionary of values to feed into Starlark environment
   category: parsers
+- name: stat
+  description: Get file information. Unlike glob() this does not support wildcards.
+  type: Function
+  args:
+  - name: filename
+    type: accessors.OSPath
+    description: One or more files to open.
+    required: true
+  - name: accessor
+    type: string
+    description: An accessor to use.
+  metadata:
+    permissions: FILESYSTEM_READ
 - name: stat
   description: Get file information. Unlike glob() this does not support wildcards.
   type: Plugin
@@ -6635,6 +6709,9 @@
   - name: hunt_id
     type: string
     description: A hunt ID
+  - name: notebook_id
+    type: string
+    description: A notebook ID
   category: server
   metadata:
     permissions: READ_RESULTS

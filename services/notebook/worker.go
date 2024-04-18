@@ -117,6 +117,7 @@ func (self *NotebookWorker) ProcessUpdateRequest(
 		version:       in.Version,
 		start:         utils.GetTime().Now(),
 		store:         store,
+		tmpl:          tmpl,
 	}
 
 	// Add the notebook environment into the cell template.
@@ -157,6 +158,7 @@ func (self *NotebookWorker) ProcessUpdateRequest(
 
 		select {
 		case <-ctx.Done():
+			return
 
 		// Active cancellation from the GUI.
 		case <-cancel_notify:
@@ -244,7 +246,8 @@ func (self *NotebookWorker) updateCellContents(
 
 		store.SetNotebookCell(notebook_id, error_cell)
 
-		return error_cell, utils.InlineError
+		return error_cell, fmt.Errorf("%w: While rendering notebook cell: %v",
+			utils.InlineError, err)
 	}
 
 	// Do not let exceptions take down the server.
